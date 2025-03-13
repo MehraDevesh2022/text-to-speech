@@ -11,15 +11,18 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-
-const AZURE_SPEECH_KEY = process.env.AZURE_SPEECH_KEY;
-const AZURE_SPEECH_REGION = process.env.AZURE_SPEECH_REGION;
-
 if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
   const fs = require('fs');
   fs.writeFileSync('/tmp/gcp-credentials.json', process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
   process.env.GOOGLE_APPLICATION_CREDENTIALS = '/tmp/gcp-credentials.json';
 }
+
+
+const AZURE_SPEECH_KEY = process.env.AZURE_SPEECH_KEY;
+const AZURE_SPEECH_REGION = process.env.AZURE_SPEECH_REGION;
+const GOOGLE_APPLICATION_CREDENTIALS = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+
 
 // Available voice options by language
 const VOICE_OPTIONS = {
