@@ -3,7 +3,7 @@ const cors = require('cors');
 const sdk = require('microsoft-cognitiveservices-speech-sdk');
 const textToSpeech = require('@google-cloud/text-to-speech');
 const dotenv = require('dotenv');
-
+const path = require("path");
 dotenv.config();
 
 const app = express();
@@ -271,6 +271,17 @@ app.post('/text-to-speech', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+
+const __dirname1 = path.resolve();
+
+app.use(express.static(path.join(__dirname1, "/frontend/dist")));
+
+app.get("*", (req, res) =>
+  res.sendFile(path.resolve(__dirname1, "frontend", "dist", "index.html"))
+);
+
 
 // Start the server
 app.listen(PORT, () => {
