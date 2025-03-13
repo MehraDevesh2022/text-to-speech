@@ -3,7 +3,7 @@ const cors = require('cors');
 const sdk = require('microsoft-cognitiveservices-speech-sdk');
 const textToSpeech = require('@google-cloud/text-to-speech');
 const dotenv = require('dotenv');
-const path = require("path");
+
 dotenv.config();
 
 const app = express();
@@ -14,7 +14,12 @@ app.use(express.json());
 
 const AZURE_SPEECH_KEY = process.env.AZURE_SPEECH_KEY;
 const AZURE_SPEECH_REGION = process.env.AZURE_SPEECH_REGION;
-const GOOGLE_APPLICATION_CREDENTIALS = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  const fs = require('fs');
+  fs.writeFileSync('/tmp/gcp-credentials.json', process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = '/tmp/gcp-credentials.json';
+}
 
 // Available voice options by language
 const VOICE_OPTIONS = {
@@ -274,13 +279,6 @@ app.post('/text-to-speech', async (req, res) => {
 
 
 
-const __dirname1 = path.resolve();
-
-app.use(express.static(path.join(__dirname1, "/frontend/dist")));
-
-app.get("*", (req, res) =>
-  res.sendFile(path.resolve(__dirname1, "frontend", "dist", "index.html"))
-);
 
 
 // Start the server
