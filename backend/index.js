@@ -3,6 +3,8 @@ const cors = require('cors');
 const sdk = require('microsoft-cognitiveservices-speech-sdk');
 const textToSpeech = require('@google-cloud/text-to-speech');
 const dotenv = require('dotenv');
+const fs = require('fs');
+const path = require('path');
 
 dotenv.config();
 
@@ -11,10 +13,29 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-  const fs = require('fs');
-  fs.writeFileSync('/tmp/gcp-credentials.json', process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-  process.env.GOOGLE_APPLICATION_CREDENTIALS = '/tmp/gcp-credentials.json';
+try {
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+    const tempFilePath = path.join('/tmp', 'gcp-credentials.json');
+    
+    let credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    
+    if (typeof credentialsJson === 'string') {
+      try {
+        const parsed = JSON.parse(credentialsJson);
+        credentialsJson = JSON.stringify(parsed);
+      } catch (jsonError) {
+        console.error('Invalid JSON format for credentials:', jsonError);
+      }
+    }
+    
+    fs.writeFileSync(tempFilePath, credentialsJson);
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = tempFilePath;
+
+  } else {
+    console.log('Using local Google credentials file path');
+  }
+} catch (error) {
+  console.error('Failed to set up Google credentials:', error);
 }
 
 
