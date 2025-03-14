@@ -104,7 +104,7 @@ const VOICE_OPTIONS = {
       { id: 'en-US-Neural2-F', name: 'Neural Female', gender: 'Female' },
       { id: 'en-US-Neural2-M', name: 'Neural Male', gender: 'Male' },
       { id: 'en-US-Wavenet-F', name: 'Wavenet Female', gender: 'Female' },
-      { id: 'en-US-Wavenet-M', name: 'Wavenet Male', gender: 'Male' }
+      // { id: 'en-US-Wavenet-M', name: 'Wavenet Male', gender: 'Male' }
     ],
     'en-GB': [
       { id: 'en-GB-Neural2-F', name: 'Neural Female (UK)', gender: 'Female' },
