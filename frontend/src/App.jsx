@@ -21,7 +21,7 @@ function App() {
 
   useEffect(() => {
     // Fetch available languages when component mounts
-    fetch('http://localhost:5000/languages')
+    fetch('https://text-to-speech-voyw.vercel.app/languages')
       .then(response => response.json())
       .then(data => {
         setLanguages(data);
@@ -34,7 +34,7 @@ function App() {
 
   // Fetch voices when language changes
   const fetchVoicesForLanguage = (languageCode) => {
-    fetch(`http://localhost:5000/voices?language=${languageCode}`)
+    fetch(`https://text-to-speech-voyw.vercel.app/voices?language=${languageCode}`)
       .then(response => response.json())
       .then(data => {
         setVoices(data);
@@ -96,7 +96,7 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/text-to-speech', {
+      const response = await fetch('https://text-to-speech-voyw.vercel.app/text-to-speech', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
