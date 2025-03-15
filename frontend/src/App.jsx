@@ -96,7 +96,7 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch('https://text-to-speech-voyw.vercel.app/text-to-speech', {
+      const response = await fetch('http://localhost:5000/text-to-speech', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
