@@ -221,8 +221,9 @@ async function googleTextToSpeech(text, voiceId = 'en-US-Neural2-F', languageCod
 }
 
 // Get available voices for a specific language
-app.get('/voices', (req, res) => {
-  const language = req.query.language || 'en-US';
+app.get('/voices',(req, res) => {
+  try {
+    const language = req.query.language || 'en-US';
   
   // Create a response with available voices for the requested language
   const response = {
@@ -231,6 +232,10 @@ app.get('/voices', (req, res) => {
   };
   
   res.json(response);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Get all supported languages
@@ -286,7 +291,7 @@ app.post('/text-to-speech', async (req, res) => {
     const sanitizedText = text.slice(0, 20).replace(/[^a-z0-9]/gi, '_').toLowerCase();
     const filename = `tts_${sanitizedText}_${timestamp}.mp3`;
 
-    // Set the appropriate headers for download
+    // Set the appropriate headers for download 
     res.set({
       'Content-Type': 'audio/mpeg',
       'Content-Length': audioBuffer.length,
