@@ -168,7 +168,7 @@ const VOICE_OPTIONS = {
 async function azureTextToSpeech(text, voiceId = 'en-US-JennyNeural') {
   return new Promise((resolve, reject) => {
     if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION) {
-      return reject(new Error('Azure Speech credentials are not configured'));
+      return reject(new Error('Azure Speech credentials are not configured')); 
     }
 
     const speechConfig = sdk.SpeechConfig.fromSubscription(AZURE_SPEECH_KEY, AZURE_SPEECH_REGION);
