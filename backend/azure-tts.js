@@ -84,11 +84,9 @@ async function azureTextToSpeech(text, voiceId = 'en-US-JennyNeural', options = 
           // Construct valid SSML with properly nested elements
           input = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
             <voice name="${voiceId}">
-              <mstts:express-as style =${style}>
               <prosody rate="${rateValue}" pitch="${pitchValue}" volume="${volumeValue}">
                 ${safeText}
               </prosody>
-              </mstts:express-as>
             </voice>
           </speak>`;
           
