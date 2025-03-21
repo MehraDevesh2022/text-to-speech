@@ -1,8 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-const sdk = require('microsoft-cognitiveservices-speech-sdk');
-const textToSpeech = require('@google-cloud/text-to-speech');
+const azureTextToSpeech  = require("./azure-tts");
+const googleTextToSpeech  = require("./gcp-tts");
+
 const dotenv = require('dotenv');
+const VOICE_OPTIONS  = require("./utils/voices");
 const fs = require('fs');
 const path = require('path');
 
@@ -13,6 +15,8 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+
 try {
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
     const tempFilePath = path.join('/tmp', 'gcp-credentials.json');
@@ -39,198 +43,12 @@ try {
 }
 
 
-const AZURE_SPEECH_KEY = process.env.AZURE_SPEECH_KEY;
-const AZURE_SPEECH_REGION = process.env.AZURE_SPEECH_REGION;
-const GOOGLE_APPLICATION_CREDENTIALS = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 
 
-// Available voice options by language
-const VOICE_OPTIONS = {
-  azure: {
-    'en-US': [
-      { id: 'en-US-JennyNeural', name: 'Jenny (Female)', gender: 'Female' },
-      { id: 'en-US-GuyNeural', name: 'Guy (Male)', gender: 'Male' },
-      { id: 'en-US-AriaNeural', name: 'Aria (Female)', gender: 'Female' },
-      { id: 'en-US-DavisNeural', name: 'Davis (Male)', gender: 'Male' }
-    ],
-    'en-GB': [
-      { id: 'en-GB-SoniaNeural', name: 'Sonia (Female)', gender: 'Female' },
-      { id: 'en-GB-RyanNeural', name: 'Ryan (Male)', gender: 'Male' }
-    ],
-    'es-ES': [
-      { id: 'es-ES-ElviraNeural', name: 'Elvira (Female)', gender: 'Female' },
-      { id: 'es-ES-AlvaroNeural', name: 'Alvaro (Male)', gender: 'Male' }
-    ],
-    'fr-FR': [
-      { id: 'fr-FR-DeniseNeural', name: 'Denise (Female)', gender: 'Female' },
-      { id: 'fr-FR-HenriNeural', name: 'Henri (Male)', gender: 'Male' }
-    ],
-    'de-DE': [
-      { id: 'de-DE-KatjaNeural', name: 'Katja (Female)', gender: 'Female' },
-      { id: 'de-DE-ConradNeural', name: 'Conrad (Male)', gender: 'Male' }
-    ],
-    'it-IT': [
-      { id: 'it-IT-ElsaNeural', name: 'Elsa (Female)', gender: 'Female' },
-      { id: 'it-IT-DiegoNeural', name: 'Diego (Male)', gender: 'Male' }
-    ],
-    'ja-JP': [
-      { id: 'ja-JP-NanamiNeural', name: 'Nanami (Female)', gender: 'Female' },
-      { id: 'ja-JP-KeitaNeural', name: 'Keita (Male)', gender: 'Male' }
-    ],
-    'ko-KR': [
-      { id: 'ko-KR-SunHiNeural', name: 'SunHi (Female)', gender: 'Female' },
-      { id: 'ko-KR-InJoonNeural', name: 'InJoon (Male)', gender: 'Male' }
-    ],
-    'pt-BR': [
-      { id: 'pt-BR-FranciscaNeural', name: 'Francisca (Female)', gender: 'Female' },
-      { id: 'pt-BR-AntonioNeural', name: 'Antonio (Male)', gender: 'Male' }
-    ],
-    'zh-CN': [
-      { id: 'zh-CN-XiaoxiaoNeural', name: 'Xiaoxiao (Female)', gender: 'Female' },
-      { id: 'zh-CN-YunxiNeural', name: 'Yunxi (Male)', gender: 'Male' }
-    ],
-    'ru-RU': [
-      { id: 'ru-RU-SvetlanaNeural', name: 'Svetlana (Female)', gender: 'Female' },
-      { id: 'ru-RU-DmitryNeural', name: 'Dmitry (Male)', gender: 'Male' }
-    ],
-    'hi-IN': [
-      { id: 'hi-IN-SwaraNeural', name: 'Swara (Female)', gender: 'Female' },
-      { id: 'hi-IN-MadhurNeural', name: 'Madhur (Male)', gender: 'Male' }
-    ]
-  },
-  google: {
-  'en-US': [
-    { id: 'en-US-Neural2-F', name: 'Neural Female', gender: 'Female' },
-    { id: 'en-US-Studio-M', name: 'Studio Male', gender: 'Male' },
-    { id: 'en-US-Wavenet-D', name: 'Wavenet Male', gender: 'Male' },
-    { id: 'en-US-Standard-B', name: 'Standard Male', gender: 'Male' },
-    { id: 'en-US-Wavenet-F', name: 'Wavenet Female', gender: 'Female' },
-  ],
-  'en-GB': [
-    { id: 'en-GB-Neural2-F', name: 'Neural Female (UK)', gender: 'Female' },
-    { id: 'en-GB-Wavenet-B', name: 'Wavenet Male (UK)', gender: 'Male' },
-    { id: 'en-GB-Standard-D', name: 'Standard Male (UK)', gender: 'Male' },
-  ],
-  'es-ES': [
-    { id: 'es-ES-Neural2-A', name: 'Neural Female (ES)', gender: 'Female' },
-    { id: 'es-ES-Wavenet-B', name: 'Wavenet Male (ES)', gender: 'Male' },
-    { id: 'es-ES-Standard-B', name: 'Standard Male (ES)', gender: 'Male' },
-  ],
-  'fr-FR': [
-    { id: 'fr-FR-Neural2-A', name: 'Neural Female (FR)', gender: 'Female' },
-    { id: 'fr-FR-Wavenet-B', name: 'Wavenet Male (FR)', gender: 'Male' },
-    { id: 'fr-FR-Standard-B', name: 'Standard Male (FR)', gender: 'Male' },
-  ],
-  'de-DE': [
-    { id: 'de-DE-Neural2-A', name: 'Neural Female (DE)', gender: 'Female' },
-    { id: 'de-DE-Wavenet-B', name: 'Wavenet Male (DE)', gender: 'Male' },
-    { id: 'de-DE-Standard-B', name: 'Standard Male (DE)', gender: 'Male' },
-  ],
-  'it-IT': [
-    { id: 'it-IT-Neural2-A', name: 'Neural Female (IT)', gender: 'Female' },
-    { id: 'it-IT-Wavenet-B', name: 'Wavenet Male (IT)', gender: 'Male' },
-    { id: 'it-IT-Standard-B', name: 'Standard Male (IT)', gender: 'Male' },
-  ],
-  'ja-JP': [
-    { id: 'ja-JP-Neural2-B', name: 'Neural Female (JP)', gender: 'Female' },
-    { id: 'ja-JP-Wavenet-C', name: 'Wavenet Male (JP)', gender: 'Male' },
-    { id: 'ja-JP-Standard-C', name: 'Standard Male (JP)', gender: 'Male' },
-  ],
-  'ko-KR': [
-    { id: 'ko-KR-Neural2-A', name: 'Neural Female (KO)', gender: 'Female' },
-    { id: 'ko-KR-Wavenet-D', name: 'Wavenet Male (KO)', gender: 'Male' },
-    { id: 'ko-KR-Standard-D', name: 'Standard Male (KO)', gender: 'Male' },
-  ],
-  'pt-BR': [
-    { id: 'pt-BR-Neural2-A', name: 'Neural Female (BR)', gender: 'Female' },
-    { id: 'pt-BR-Wavenet-B', name: 'Wavenet Male (BR)', gender: 'Male' },
-    { id: 'pt-BR-Standard-B', name: 'Standard Male (BR)', gender: 'Male' },
-  ],
-  'zh-CN': [
-    { id: 'cmn-CN-Neural2-A', name: 'Neural Female (CN)', gender: 'Female' },
-    { id: 'cmn-CN-Wavenet-B', name: 'Wavenet Male (CN)', gender: 'Male' },
-    { id: 'cmn-CN-Standard-B', name: 'Standard Male (CN)', gender: 'Male' },
-  ],
-  'ru-RU': [
-    { id: 'ru-RU-Neural2-A', name: 'Neural Female (RU)', gender: 'Female' },
-    { id: 'ru-RU-Wavenet-B', name: 'Wavenet Male (RU)', gender: 'Male' },
-    { id: 'ru-RU-Standard-B', name: 'Standard Male (RU)', gender: 'Male' },
-  ],
-  'hi-IN': [
-    { id: 'hi-IN-Neural2-A', name: 'Neural Female (HI)', gender: 'Female' },
-    { id: 'hi-IN-Wavenet-B', name: 'Wavenet Male (HI)', gender: 'Male' },
-    { id: 'hi-IN-Standard-B', name: 'Standard Male (HI)', gender: 'Male' },
-  ]
-}
-};
 
-async function azureTextToSpeech(text, voiceId = 'en-US-JennyNeural') {
-  return new Promise((resolve, reject) => {
-    if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION) {
-      return reject(new Error('Azure Speech credentials are not configured')); 
-    }
 
-    const speechConfig = sdk.SpeechConfig.fromSubscription(AZURE_SPEECH_KEY, AZURE_SPEECH_REGION);
-    speechConfig.speechSynthesisVoiceName = voiceId;
-    speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
-    
-    const pullStream = sdk.AudioOutputStream.createPullStream();
-    const audioConfig = sdk.AudioConfig.fromStreamOutput(pullStream);
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
-    
-    synthesizer.speakTextAsync(
-      text,
-      result => {
-        if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-          const audioData = result.audioData;
-          resolve(Buffer.from(audioData));
-        } else {
-          const cancelationDetails = sdk.CancellationDetails.fromResult(result);
-          reject(new Error(`Speech synthesis canceled: ${cancelationDetails.reason}`));
-        }
-        synthesizer.close();
-      },
-      error => {
-        synthesizer.close();
-        reject(error);
-      }
-    );
-  });
-}
 
-async function googleTextToSpeech(text, voiceId = 'en-US-Neural2-F', languageCode = 'en-US') {
-  try {
-    if (!GOOGLE_APPLICATION_CREDENTIALS) {
-      throw new Error('Google Cloud credentials file path is not configured');
-    }
-
-    // Extract the language code from voice ID if needed
-    const effectiveLanguageCode = languageCode || voiceId.split('-').slice(0, 2).join('-');
-    
-    const client = new textToSpeech.TextToSpeechClient();
-    const request = {
-      input: { text: text },
-      voice: {
-        languageCode: effectiveLanguageCode,
-        name: voiceId,
-        ssmlGender: voiceId.includes('F') || voiceId.includes('A') ? 'FEMALE' : 'MALE',
-      },
-      audioConfig: { 
-        audioEncoding: 'MP3',
-        pitch: 0,
-        speakingRate: 1.0,
-        volumeGainDb: 0.0
-      },
-    };
-
-    const [response] = await client.synthesizeSpeech(request);
-    return Buffer.from(response.audioContent);
-  } catch (error) {
-    console.error('Google TTS API error:', error);
-    throw new Error(`Failed to convert text to speech using Google TTS: ${error.message}`);
-  }
-}
 
 // Get available voices for a specific language
 app.get('/voices',(req, res) => {
@@ -242,8 +60,7 @@ app.get('/voices',(req, res) => {
     azure: VOICE_OPTIONS.azure[language] || VOICE_OPTIONS.azure['en-US'],
     google: VOICE_OPTIONS.google[language] || VOICE_OPTIONS.google['en-US']
   };
-  
-  res.json(response);
+   res.json(response);
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: error.message });
@@ -281,17 +98,22 @@ app.get('/languages', (req, res) => {
 
 // Route for text-to-speech conversion
 app.post('/text-to-speech', async (req, res) => {
-  try {
-    const { text, model, voiceId, language } = req.body;
+  try { 
+    const { text, model, voiceId, language, options } = req.body;
 
     if (!text) {
       return res.status(400).json({ error: 'Text is required' });
     }
 
+    // Validate the text length to prevent oversized requests
+    if (text.length > 5000) {
+      return res.status(400).json({ error: 'Text exceeds maximum length of 5000 characters' });
+    }
+
     let audioBuffer;
     
     if (model === 'azure') {
-      audioBuffer = await azureTextToSpeech(text, voiceId);
+      audioBuffer = await azureTextToSpeech(text, voiceId, options);
     } else if (model === 'google') {
       audioBuffer = await googleTextToSpeech(text, voiceId, language);
     } else {
@@ -317,10 +139,6 @@ app.post('/text-to-speech', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-
-
-
 
 // Start the server
 app.listen(PORT, () => {

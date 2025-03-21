@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
-import { FaPlay, FaStop, FaDownload, FaGlobe } from 'react-icons/fa';
+import { FaPlay, FaStop, FaDownload, FaGlobe, FaMagic } from 'react-icons/fa';
 import { VscAzure } from "react-icons/vsc";
 import { SiGoogle } from 'react-icons/si';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,7 +17,55 @@ function App() {
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState('en-US');
   const [languages, setLanguages] = useState([]);
+  // Add new state for prosody settings
+  const [prosody, setProsody] = useState({
+    rate: 1.0,
+    pitch: 0,
+    volume: 1.0
+  });
+
+  // Define default prosody values
+  const defaultProsody = {
+    rate: 1.0,
+    pitch: 0,
+    volume: 1.0
+  };
+  
   const audioRef = useRef(null);
+
+  // Enhanced prosody presets with validated values
+  const prosodyPresets = {
+    default: { rate: 1.0, pitch: 0, volume: 1.0, name: "Normal" },
+    slow: { rate: 0.7, pitch: -2, volume: 1.0, name: "Slow & Clear" },
+    fast: { rate: 1.5, pitch: 2, volume: 1.0, name: "Fast" },
+    child: { rate: 1.1, pitch: 6, volume: 1.0, name: "Child-like" },
+    // Adjusted values for problem presets to stay within safer ranges
+    deep: { rate: 0.9, pitch: -5, volume: 1.1, name: "Deep Voice" },
+    robot: { rate: 0.8, pitch: -3, volume: 0.9, name: "Robot" },
+    whisper: { rate: 0.9, pitch: 0, volume: 0.7, name: "Whisper" },
+    excited: { rate: 1.2, pitch: 3, volume: 1.2, name: "Excited" },
+  };
+  
+  const [currentPreset, setCurrentPreset] = useState("default");
+  
+  // Apply preset with visual feedback and validation
+  const applyPreset = (presetKey) => {
+    if (prosodyPresets[presetKey]) {
+      const preset = prosodyPresets[presetKey];
+      
+      // Validate and set prosody values
+      setProsody({
+        rate: Math.max(0.5, Math.min(2.0, preset.rate)),
+        pitch: Math.max(-12, Math.min(12, preset.pitch)),
+        volume: Math.max(0.1, Math.min(2.0, preset.volume))
+      });
+      
+      setCurrentPreset(presetKey);
+      
+      // Add visual feedback when applying presets
+      console.log(`Applied "${preset.name}" preset`);
+    }
+  };
 
   useEffect(() => {
     // Fetch available languages when component mounts
@@ -91,11 +139,40 @@ function App() {
     }
   };
 
+  const handleProsodyChange = (setting, value) => {
+    setProsody(prev => ({
+      ...prev,
+      [setting]: value
+    }));
+  };
+
+  // Function to check if prosody has been modified from default - with tolerance for floating point comparison
+  const isProsodyModified = () => {
+    return Math.abs(prosody.rate - defaultProsody.rate) > 0.01 || 
+           prosody.pitch !== defaultProsody.pitch || 
+           Math.abs(prosody.volume - defaultProsody.volume) > 0.01;
+  };
+
   const handleListen = async () => {
     if (!text.trim()) return;
 
     setLoading(true);
     try {
+      // Create options object for the request
+      const options = {};
+      
+      // Only include prosody for Azure if it's been modified
+      if (activeModel === 'azure' && isProsodyModified()) {
+        options.prosody = {
+          rate: prosody.rate,
+          pitch: prosody.pitch,
+          volume: prosody.volume
+        };
+        console.log(`Using custom prosody: Rate=${prosody.rate}, Pitch=${prosody.pitch}, Volume=${prosody.volume}`);
+      } else {
+        console.log('Using default voice settings (no prosody modification)');
+      }
+      
       const response = await fetch('https://text-to-speech-voyw.vercel.app/text-to-speech', {
         method: 'POST',
         headers: {
@@ -105,7 +182,8 @@ function App() {
           text, 
           model: activeModel,
           voiceId: selectedVoice,
-          language: selectedLanguage
+          language: selectedLanguage,
+          options: options.prosody ? options : undefined
         }),
       });
 
@@ -189,6 +267,103 @@ function App() {
         ease: "easeInOut"
       }
     })
+  };
+
+  // Enhanced Prosody Controls Component
+  const ProsodyControls = () => {
+    return (
+      <motion.div
+        className="prosody-controls glass-effect"
+        variants={itemVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <h3>Voice Prosody Settings</h3>
+        
+        <div className="prosody-presets">
+          <h4>Presets</h4>
+          <div className="preset-buttons">
+            {Object.keys(prosodyPresets).map(presetKey => (
+              <motion.button 
+                key={presetKey}
+                className={`preset-button ${currentPreset === presetKey ? 'active' : ''}`}
+                onClick={() => applyPreset(presetKey)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <FaMagic className="preset-icon" />
+                {prosodyPresets[presetKey].name}
+              </motion.button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="prosody-sliders">
+          <div className="prosody-slider-group">
+            <div className="slider-header">
+              <label>Speed</label>
+              <span className="slider-value">{prosody.rate}x</span>
+            </div>
+            <input
+              type="range"
+              min="0.5"
+              max="2"
+              step="0.1"
+              value={prosody.rate}
+              onChange={(e) => handleProsodyChange('rate', parseFloat(e.target.value))}
+              className="prosody-slider"
+            />
+            <div className="slider-labels">
+              <span>Slow</span>
+              <span>Normal</span>
+              <span>Fast</span>
+            </div>
+          </div>
+
+          <div className="prosody-slider-group">
+            <div className="slider-header">
+              <label>Pitch</label>
+              <span className="slider-value">{prosody.pitch > 0 ? "+" : ""}{prosody.pitch}</span>
+            </div>
+            <input
+              type="range"
+              min="-12"
+              max="12"
+              step="1"
+              value={prosody.pitch}
+              onChange={(e) => handleProsodyChange('pitch', parseInt(e.target.value))}
+              className="prosody-slider"
+            />
+            <div className="slider-labels">
+              <span>Lower</span>
+              <span>Normal</span>
+              <span>Higher</span>
+            </div>
+          </div>
+
+          <div className="prosody-slider-group">
+            <div className="slider-header">
+              <label>Volume</label>
+              <span className="slider-value">{prosody.volume}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="2"
+              step="0.1"
+              value={prosody.volume}
+              onChange={(e) => handleProsodyChange('volume', parseFloat(e.target.value))}
+              className="prosody-slider"
+            />
+            <div className="slider-labels">
+              <span>Quiet</span>
+              <span>Normal</span>
+              <span>Loud</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
   };
 
   return (
@@ -311,6 +486,21 @@ function App() {
               )}
             </AnimatePresence>
           </motion.div>
+
+          {/* Only show prosody controls when Azure is selected */}
+          <AnimatePresence>
+            {activeModel === 'azure' && (
+              <motion.div
+                key="prosody-controls"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ProsodyControls />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <motion.div className="controls" variants={itemVariants}>
             <AnimatePresence mode="wait">
